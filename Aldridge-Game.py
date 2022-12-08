@@ -8,6 +8,7 @@ SCREEN_HEIGHT = 410
 GAME_INTRO = 1
 GAME_RUNNING = 2
 GAME_OVER = 3
+YOU_WON = 4
 TIMEBETWEENDROPS = 100
 
 # Index of textures, first element faces left, second faces right
@@ -68,7 +69,13 @@ class MyApplication(arcade.Window):
         self.score_text = None
         self.current_state = None
         self.dropTime = TIMEBETWEENDROPS
-        self.difficulty = 70  # Intial speed determiner
+        self.dropTime2 = 0
+        self.dropTime3 = 0
+        self.dropTime4 = 0
+        self.chicken2flag = False
+        self.chicken3flag = False
+        self.chicken4flag = False
+        self.difficulty = 0  # Intial speed determiner
 
         # Do show the mouse cursor
         self.set_mouse_visible(True)
@@ -80,6 +87,7 @@ class MyApplication(arcade.Window):
 
         self.background = arcade.load_texture("images/coop.jpg")
         self.all_sprites_list = arcade.SpriteList()
+        self.chicken_list = arcade.SpriteList()
         self.egg_list = arcade.SpriteList()
         # Score
         self.score = 0
@@ -95,6 +103,7 @@ class MyApplication(arcade.Window):
         self.chicken.angle = 0
         self.chicken.change_x = 1
         self.all_sprites_list.append(self.chicken)
+        self.chicken_list.append(self.chicken)
 
     def on_draw(self):
         """Render the screen. """
@@ -116,27 +125,40 @@ class MyApplication(arcade.Window):
         elif self.current_state == GAME_RUNNING:
             self.draw_game()
 
+        elif self.current_state == YOU_WON:
+            self.draw_you_won()
+
         else:
             # End game
             self.draw_game_over()
 
     def draw_game(self):
+        if self.current_state == GAME_RUNNING:
+            self.chicken_list.draw()
+            self.egg_list.draw()
+            self.player.draw()
 
-        self.chicken.draw()
-        self.egg_list.draw()
-        self.player.draw()
-
-        # Put the text on the screen.
-        output = f"Score: {self.score}"
-        arcade.draw_text(output, 10, 385, arcade.color.WHITE, 14)
+            # Put the text on the screen.
+            output = f"Score: {self.score}"
+            arcade.draw_text(output, 10, 385, arcade.color.WHITE, 14)
 
     def draw_game_over(self):
         """
         Draw "Game over" across the screen.
         """
+        arcade.draw_text("GAME OVER", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 40,
+                         arcade.color.WHITE, font_size=50, anchor_x="center")
 
-        output = "Game Over"
-        arcade.draw_text(output, 180, 180, arcade.color.WHITE, 54)
+        if self.frame_count == 10:
+            print("done")
+            # arcade.finish_render()
+            # arcade.close_window()
+
+    def draw_you_won(self):
+        arcade.draw_text("CONGRATULATIONS", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 30,
+                         arcade.color.WHITE, font_size=40, anchor_x="center")
+        arcade.draw_text("You Won!", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 80,
+                         arcade.color.WHITE, font_size=30, anchor_x="center")
 
         if self.frame_count == 100:
             print("done")
@@ -145,46 +167,124 @@ class MyApplication(arcade.Window):
 
     def update(self, delta_time):
         """All the logic to move, and the game logic goes here. """
+        if self.current_state == GAME_RUNNING:
+            # Use this if you want something to stay on the screen for a limited time
+            self.frame_count += 1
 
-        # Use this if you want something to stay on the screen for a limited time
-        self.frame_count += 1
+            # Determine when to drop next egg
+            if self.dropTime == 0:
+                egg = arcade.Sprite("images/egg.png")
+                egg.center_x = self.chicken.center_x
+                egg.top = self.chicken.bottom
+                egg.change_y = -2
+                egg.scale = 0.75
 
-        # Determine when to drop next egg
-        if self.dropTime == 0:
-            egg = arcade.Sprite("images/egg.png")
-            egg.center_x = self.chicken.center_x
-            egg.top = self.chicken.bottom
-            egg.change_y = -2
-            egg.scale = 0.75
+                self.egg_list.append(egg)
+                self.all_sprites_list.append(egg)
+                self.dropTime = TIMEBETWEENDROPS - self.difficulty
 
-            self.egg_list.append(egg)
-            self.all_sprites_list.append(egg)
-            self.dropTime = TIMEBETWEENDROPS * (random.randrange(self.difficulty, 100) / 100)
+            else:
+                self.dropTime = self.dropTime - 1
 
-        else:
-            self.dropTime = self.dropTime - 1
+            # Generate a list of all sprites that collided with the player.
+            hit_list = arcade.check_for_collision_with_list(self.player,
+                                                            self.egg_list)
 
-        # Generate a list of all sprites that collided with the player.
-        hit_list = arcade.check_for_collision_with_list(self.player,
-                                                        self.egg_list)
-
-        # Loop through each colliding sprite, remove it, and add to the score.
-        for egg in hit_list:
-            egg.kill()
-            self.score += 1
-
-        if self.score % 100 == 0 and self.score > 0 and self.difficulty > 0:
-            self.difficulty -= 10
-
-        # Get rid of the egg when it flies off-screen
-        for egg in self.egg_list:
-            if egg.top < 0:
+            # Loop through each colliding sprite, remove it, and add to the score.
+            for egg in hit_list:
                 egg.kill()
-                self.current_state = GAME_OVER
-                self.frame_count = 0
+                self.score += 1
 
-        self.egg_list.update()
-        self.chicken.update()
+                if self.score % 10 == 0 and self.score > 0:
+                    self.difficulty += 5
+
+                if self.score == 10:
+                    self.chicken2 = Chicken()
+                    self.chicken2.center_x = 200
+                    self.chicken2.center_y = SCREEN_HEIGHT - (1.7 * self.chicken2.height)
+                    self.chicken2.angle = 0
+                    self.chicken2.change_x = 1
+                    self.all_sprites_list.append(self.chicken2)
+                    self.chicken_list.append(self.chicken2)
+                    self.chicken2flag = True
+
+                if self.score == 50:
+                    self.chicken3 = Chicken()
+                    self.chicken3.center_x = 200
+                    self.chicken3.center_y = SCREEN_HEIGHT - (1.7 * self.chicken3.height)
+                    self.chicken3.angle = 0
+                    self.chicken3.change_x = 1
+                    self.all_sprites_list.append(self.chicken3)
+                    self.chicken_list.append(self.chicken3)
+                    self.chicken3flag = True
+
+                if self.score == 100:
+                    self.chicken4 = Chicken()
+                    self.chicken4.center_x = 200
+                    self.chicken4.center_y = SCREEN_HEIGHT - (1.7 * self.chicken4.height)
+                    self.chicken4.angle = 0
+                    self.chicken4.change_x = 1
+                    self.all_sprites_list.append(self.chicken4)
+                    self.chicken_list.append(self.chicken4)
+                    self.chicken4flag = True
+
+            if self.score == 150:
+                self.current_state = YOU_WON
+
+            if self.chicken2flag == True:
+                if self.dropTime2 == 0:
+                    egg = arcade.Sprite("images/egg.png")
+                    egg.center_x = self.chicken2.center_x
+                    egg.top = self.chicken2.bottom
+                    egg.change_y = -2
+                    egg.scale = 0.75
+
+                    self.egg_list.append(egg)
+                    self.all_sprites_list.append(egg)
+                    self.dropTime2 = TIMEBETWEENDROPS - self.difficulty
+
+                else:
+                    self.dropTime2 = self.dropTime2 - 1
+
+            if self.chicken3flag == True:
+                if self.dropTime3 == 0:
+                    egg = arcade.Sprite("images/egg.png")
+                    egg.center_x = self.chicken3.center_x
+                    egg.top = self.chicken3.bottom
+                    egg.change_y = -2
+                    egg.scale = 0.75
+
+                    self.egg_list.append(egg)
+                    self.all_sprites_list.append(egg)
+                    self.dropTime3 = TIMEBETWEENDROPS - self.difficulty
+
+                else:
+                    self.dropTime3 = self.dropTime3 - 1
+
+            if self.chicken4flag == True:
+                if self.dropTime4 == 0:
+                    egg = arcade.Sprite("images/egg.png")
+                    egg.center_x = self.chicken4.center_x
+                    egg.top = self.chicken4.bottom
+                    egg.change_y = -2
+                    egg.scale = 0.75
+
+                    self.egg_list.append(egg)
+                    self.all_sprites_list.append(egg)
+                    self.dropTime4 = TIMEBETWEENDROPS - self.difficulty
+
+                else:
+                    self.dropTime4 = self.dropTime4 - 1
+
+            # Get rid of the egg when it flies off-screen
+            for egg in self.egg_list:
+                if egg.top < 0:
+                    egg.kill()
+                    self.current_state = GAME_OVER
+                    self.frame_count = 0
+
+            self.egg_list.update()
+            self.chicken_list.update()
 
     def on_mouse_motion(self, x, y, delta_x, delta_y):
         """ Called whenever the mouse moves. """
