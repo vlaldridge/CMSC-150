@@ -75,7 +75,7 @@ class MyApplication(arcade.Window):
         self.chicken2flag = False
         self.chicken3flag = False
         self.chicken4flag = False
-        self.difficulty = 0  # Intial speed determiner
+        self.difficulty = 0  # Initial speed determiner
 
         # Do show the mouse cursor
         self.set_mouse_visible(True)
@@ -120,7 +120,6 @@ class MyApplication(arcade.Window):
                              arcade.color.WHITE, font_size=20, anchor_x="center")
             arcade.draw_text("Press the space bar to Start", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 75,
                              arcade.color.GRAY, font_size=20, anchor_x="center")
-
 
         elif self.current_state == GAME_RUNNING:
             self.draw_game()
